@@ -22,7 +22,7 @@ cargo build --release
 Then you can run it on `some-executable.exe` storing the output to `output` as follows:
 
 ```
-cargo run --release -- some-executable.exe output=output
+cargo run --release -- some-executable.exe --output=output
 ```
 
 ## How does this work?
@@ -125,7 +125,7 @@ Then we try to find the first blob by looking for the first delta, and then simp
 Unfortunately, this approach has one drawback, which is that some resource trees may only contain one file and therefore only one data offset.
 Thus leaving us without a way to figure out the size of a single blob.
 However, note that these resource trees usually follow a particular layout where the blobs either succeed the names (Linux) or where the blobs preceed the names (Windows).
-This means that we can look for the blob starting from the end of the name section (Linux) or look for the blob in reverse starting from the start of the name section.
+This means that we can look for the blob starting from the end of the name section (Linux) or look for the blob in reverse starting from the start of the name section (Windows).
 
 In general this approach works pretty well to extract resources from executables that use Qt's resource packing, but can be further improved by looking for specific file headers (e.g. zlib signatures, PNG singatures, GIF signatures).
 
