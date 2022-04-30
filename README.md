@@ -37,8 +37,8 @@ The information/metadata for each tree is split up over three sections:
 The sections are usually found sequentially in the executable, possibly with some padding in between.
 However, after some experimentation I found out that the order of the sections it not always the same:
 
-* Microsoft Windows order: <blobs> <names> <tree>
-* Linux order: <tree> <names> <blobs>
+* Microsoft Windows order: \<blobs\> \<names\> \<tree\>
+* Linux order: \<tree\> \<names\> \<blobs\>
 
 In addition, `rcc` will only compress resources if the compression is actually helpful.
 Therefore, any given executable may have trees that are completely uncompressed, or just contain a single file.
