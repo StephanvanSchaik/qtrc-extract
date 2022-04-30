@@ -13,7 +13,7 @@ This needs a little bit more work to figure out padding and visited ranges, but 
 
 ## Usage
 
-To build qtrc-extract you need both Git and [Rust](https://rustup.sh).
+To build qtrc-extract you need both Git and [Rust](https://rustup.rs).
 Then using Git you can check out this repository as follows:
 
 ```
