@@ -34,7 +34,7 @@ The information/metadata for each tree is split up over three sections:
  * The **tree** section contains tree entries that each either describe a directory or a file.
  * The **name** section contains UTF-16 strings with a 16-bit size and a 32-bit hash.
 
-The sections are usually found consecutively in the executable, possibly with some padding in between.
+The sections are usually found sequentially in the executable, possibly with some padding in between.
 However, after some experimentation I found out that the order of the sections it not always the same:
 
 * Microsoft Windows order: <blobs> <names> <tree>
@@ -78,7 +78,7 @@ pub fn hash_str(s: &str) -> u32 {
 }
 ```
 
-Once we have at least one name entry, we can simply try decoding consecutive name entries until we hit data that does not represent a name entry, which will very likely produce an incorrect hash.
+Once we have at least one name entry, we can simply try decoding sequential name entries until we hit data that does not represent a name entry, which will very likely produce an incorrect hash.
 This means that we generally just need the first name entry of a set of names to be within the ASCII range.
 
 Next we want to find the **tree** section describing the actual resource tree.
@@ -117,7 +117,7 @@ Each blob looks as follows:
 * size: unsigned 32-bit integer
 * payload: size number of bytes
 
-In addition, blobs in the blob sections are consecutive.
+In addition, blobs in the blob sections are sequential.
 Therefore, we can find the next blob by adding the size of the current blob + 4 bytes for the 32-bit size field to the offset.
 Thus, to find the blob section, we collect all the data offsets from the file entries, sort them in ascending order, and calculate the deltas between every two offsets (- 4 to account for the 32-bit size field).
 Then we try to find the first blob by looking for the first delta, and then simply traverse the chain of blobs confirming each blob's size with the deltas we found.
