@@ -1,0 +1,11 @@
+[package]
+name = "qtrc-extract"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+binrw = "0.8"
+clap = { version = "3", features = ["derive"] }
+flate2 = "1"
+rangemap = "1"
