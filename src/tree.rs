@@ -9,9 +9,9 @@ use std::path::Path;
 #[derive(BinRead, Debug)]
 #[br(big)]
 pub struct Blob {
-    #[br(assert(size != 0))]
-    size: u32,
-    #[br(count(size))]
+    #[br(assert(_size != 0))]
+    _size: u32,
+    #[br(count(_size))]
     bytes: Vec<u8>,
 }
 
@@ -37,7 +37,7 @@ pub struct Entry {
     flags: u16,
     #[br(args { flags })]
     data: EntryData,
-    last_modified: u64,
+    _last_modified: u64,
 }
 
 /// Attempts to parse a tree from the given byte array `bytes`. The node ID `node_id` and node
