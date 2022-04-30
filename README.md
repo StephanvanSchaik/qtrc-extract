@@ -13,7 +13,14 @@ This needs a little bit more work to figure out padding and visited ranges, but 
 
 ## Usage
 
-Build qtrc-extract as follows:
+To build qtrc-extract you need both Git and [Rust](https://rustup.sh).
+Then using Git you can check out this repository as follows:
+
+```
+git clone https://github.com/StephanvanSchaik/qtrc-extract
+```
+
+Then navigate to the qtrc-extract directory and build qtrc-extract as follows:
 
 ```
 cargo build --release
@@ -23,6 +30,12 @@ Then you can run it on `some-executable.exe` storing the output to `output` as f
 
 ```
 cargo run --release -- some-executable.exe --output=output
+```
+
+Alternatively, you can run the tool as follows:
+
+```
+./target/release/qtrc-extract some-executable.exe --output=output
 ```
 
 ## How does this work?
