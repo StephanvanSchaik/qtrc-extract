@@ -3,8 +3,6 @@ mod tree;
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use rangemap::RangeSet;
-use std::collections::HashSet;
 use std::path::PathBuf;
 
 use crate::name::scan_names;
@@ -62,7 +60,7 @@ fn main() -> Result<()> {
                 println!("Found data blobs at 0x{:x}...", blob_offset);
                 println!("Extracting file tree...");
 
-                tree::extract_tree(&output, names, &bytes[blob_offset..], &bytes[tree_offset..], 0, 1);
+                tree::extract_tree(&output, names, &bytes[blob_offset..], &bytes[tree_offset..], 0, 1)?;
             }
         }
     }

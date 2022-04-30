@@ -4,7 +4,7 @@ use binrw::io::{Cursor, Read};
 use flate2::read::ZlibDecoder;
 use rangemap::RangeSet;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 #[derive(BinRead, Debug)]
 #[br(big)]
@@ -138,7 +138,6 @@ pub fn collect_data_offsets(
 
     // Parse the entries.
     let mut reader = Cursor::new(&bytes[node_id * 22..][..count * 22]);
-    let mut result = 0;
 
     for _ in 0..count {
         // Read the current entry.
@@ -270,7 +269,6 @@ pub fn extract_tree<P: AsRef<Path>>(
 
     // Parse the entries.
     let mut reader = Cursor::new(&bytes[node_id * 22..][..count * 22]);
-    let mut result = 0;
 
     for _ in 0..count {
         // Read the current entry.
@@ -283,7 +281,7 @@ pub fn extract_tree<P: AsRef<Path>>(
         let mut path = root.as_ref().to_path_buf();
 
         // Get the name of the entry.
-        let name = match names.get(&(entry.name_offset as usize)) {
+        match names.get(&(entry.name_offset as usize)) {
             Some(name) => path.push(name),
             _ => continue,
         };
