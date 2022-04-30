@@ -30,12 +30,12 @@ fn main() -> Result<()> {
     let names = scan_names(&bytes);
 
     for (range, names) in names.iter() {
-        println!("Found set of names at 0x{:x}...", range.start);
+        println!("Found set of names at 0x{:x}-0x{:x}...", range.start, range.end);
 
         let tree_offsets = tree::find_tree_offsets(names, &bytes);
 
-        for tree_offset in tree_offsets {
-            println!("Found file tree at 0x{:x}...", tree_offset);
+        for (tree_offset, tree_size) in tree_offsets {
+            println!("Found file tree at 0x{:x}-0x{:x}...", tree_offset, tree_offset + tree_size);
 
             let mut blob_offsets = tree::find_blob_offsets(tree_offset, &bytes);
 

@@ -164,7 +164,7 @@ pub fn collect_data_offsets(
 pub fn find_tree_offsets(
     names: &BTreeMap<usize, String>,
     bytes: &[u8],
-) -> BTreeSet<usize> {
+) -> BTreeSet<(usize, usize)> {
     let mut tree_offsets = BTreeSet::new();
 
     // Collect the name offsets.
@@ -181,7 +181,12 @@ pub fn find_tree_offsets(
 
         // Did this tree use all of our name offsets?
         if count >= name_offsets.len() {
-            tree_offsets.insert(offset);
+            let end = match node_ids.iter().last() {
+                Some(range) => range.end,
+                _ => continue,
+            };
+
+            tree_offsets.insert((offset, end * 22));
         }
     }
 
