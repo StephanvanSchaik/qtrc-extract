@@ -47,6 +47,7 @@ fn main() -> Result<()> {
 
         let trees = tree::find_trees(names, &bytes);
 
+        // Score the trees by their proximity to this name range.
         let trees: BTreeMap<usize, Range<usize>> = trees
             .into_iter()
             .map(|(_, tree_range)| (distance(name_range, &tree_range), tree_range))
@@ -79,6 +80,7 @@ fn main() -> Result<()> {
                 }
             }
 
+            // Score the blobs by their proximity to this name range.
             let blobs: BTreeMap<usize, Range<usize>> = blobs
                 .into_iter()
                 .map(|(_, blob_range)| (distance(name_range, &blob_range), blob_range))
