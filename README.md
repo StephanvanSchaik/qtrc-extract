@@ -128,6 +128,7 @@ However, note that these resource trees usually follow a particular layout where
 This means that we can look for the blob starting from the end of the name section (Linux) or look for the blob in reverse starting from the start of the name section (Windows).
 
 In general this approach works pretty well to extract resources from executables that use Qt's resource packing, but can be further improved by looking for specific file headers (e.g. zlib signatures, PNG singatures, GIF signatures).
+Ideally, this should be implemented in such a way that the user of this tool can simply specify their own file containing the signatures per line using a format like "CA ?? FE".
 
 ## Similar Projects
 
