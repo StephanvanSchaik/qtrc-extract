@@ -3,6 +3,8 @@ mod tree;
 
 use anyhow::{Context, Result};
 use clap::Parser;
+use std::collections::BTreeMap;
+use std::ops::Range;
 use std::path::PathBuf;
 
 use crate::name::scan_names;
@@ -14,6 +16,17 @@ struct Args {
 
     #[clap(short, long)]
     output: Option<String>,
+}
+
+/// Calculates the distance between two ranges.
+fn distance(lhs: &Range<usize>, rhs: &Range<usize>) -> usize {
+    if lhs.end <= rhs.start {
+        rhs.start - lhs.end
+    } else if rhs.end <= lhs.start {
+        lhs.start - rhs.end
+    } else {
+        0
+    }
 }
 
 fn main() -> Result<()> {
@@ -34,8 +47,13 @@ fn main() -> Result<()> {
 
         let trees = tree::find_trees(names, &bytes);
 
-        for (_, tree_range) in trees {
-            println!("Found file tree at 0x{:x}-0x{:x}...", tree_range.start, tree_range.end);
+        let trees: BTreeMap<usize, Range<usize>> = trees
+            .into_iter()
+            .map(|(_, tree_range)| (distance(name_range, &tree_range), tree_range))
+            .collect();
+
+        'outer: for (score, tree_range) in trees {
+            println!("Found file tree at 0x{:x}-0x{:x} with proximity score {}...", tree_range.start, tree_range.end, score);
 
             let mut blobs = tree::find_blobs(tree_range.start, &bytes);
 
@@ -61,11 +79,18 @@ fn main() -> Result<()> {
                 }
             }
 
-            for (_, blob_range) in blobs {
-                println!("Found data blobs at 0x{:x}-0{:x}...", blob_range.start, blob_range.end);
+            let blobs: BTreeMap<usize, Range<usize>> = blobs
+                .into_iter()
+                .map(|(_, blob_range)| (distance(name_range, &blob_range), blob_range))
+                .collect();
+
+            for (score, blob_range) in blobs {
+                println!("Found data blobs at 0x{:x}-0{:x} with proximity score {}...", blob_range.start, blob_range.end, score);
                 println!("Extracting file tree...");
 
-                tree::extract_tree(&output, names, &bytes[blob_range.clone()], &bytes[tree_range.clone()], 0, 1)?;
+                if let Ok(()) = tree::extract_tree(&output, names, &bytes[blob_range.clone()], &bytes[tree_range.start..], 0, 1) {
+                    break 'outer;
+                }
             }
         }
     }
