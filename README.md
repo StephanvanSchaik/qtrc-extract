@@ -134,7 +134,7 @@ In general this approach works pretty well to extract resources from executables
 * [extract-qt-resources](https://github.com/dgchurchill/extract-qt-resources) is written in F# and requires Mono on Linux. I wasn't able to get this one to compile, since I have very little experience with Mono, but this seemed to be the most promising looking at its parsers.
 * [qrc](https://github.com/pgaskin/qrc) is written in Go and requires the user to specify offsets to the tree, names and blobs section in order to extract them from an executable.
 * [qtextract](https://github.com/axstin/qtextract) is written in Lua and seems to look for specific sequences in the code of the executable to locate the offsets. This didn't seem to work for me, which may be due to the specific code sequences for which it is looking.
-* [qresExtract](https://github.com/tatokis/qresExtract) is written in C++ and seems to a simple parser for rcc files, but does not seem to have any logic to extract Qt resources from executables.
+* [qresExtract](https://github.com/tatokis/qresExtract) is written in C++ and seems to be a simple parser for rcc files, but does not seem to have any logic to extract Qt resources from executables.
 
 ## References
 
