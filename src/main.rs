@@ -41,8 +41,21 @@ fn main() -> Result<()> {
 
             let mut blob_offsets = tree::find_blob_offsets(tree_offset, &bytes);
 
+            // FIXME: add the Windows version.
             if blob_offsets.is_empty() {
-                blob_offsets.insert(((range.end + 15) & !15));
+                // Align the offset to 8 bytes.
+                let mut offset = (range.end + 7) & !7;
+
+                // Skip 8 bytes of padding until we find no more padding.
+                while offset + 8 <= bytes.len() && bytes[offset..][..8].iter().all(|c| *c == 0) {
+                    offset += 8;
+                }
+
+                // If we did not reach the end of the file, then we probably found a good blob
+                // offset.
+                if offset + 8 <= bytes.len() {
+                    blob_offsets.insert(offset);
+                }
             }
 
             for blob_offset in blob_offsets {
