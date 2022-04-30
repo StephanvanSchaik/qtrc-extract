@@ -4,6 +4,7 @@ use binrw::io::{Cursor, Read};
 use flate2::read::ZlibDecoder;
 use rangemap::RangeSet;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::ops::Range;
 use std::path::Path;
 
 #[derive(BinRead, Debug)]
@@ -161,11 +162,11 @@ pub fn collect_data_offsets(
     offsets
 }
 
-pub fn find_tree_offsets(
+pub fn find_trees(
     names: &BTreeMap<usize, String>,
     bytes: &[u8],
-) -> BTreeSet<(usize, usize)> {
-    let mut tree_offsets = BTreeSet::new();
+) -> BTreeMap<usize, Range<usize>> {
+    let mut sections = BTreeMap::new();
 
     // Collect the name offsets.
     let name_offsets: HashSet<usize> = names
@@ -186,18 +187,18 @@ pub fn find_tree_offsets(
                 _ => continue,
             };
 
-            tree_offsets.insert((offset, end * 22));
+            sections.insert(offset, offset..offset + end * 22);
         }
     }
 
-    tree_offsets
+    sections
 }
 
-pub fn find_blob_offsets(
+pub fn find_blobs(
     tree_offset: usize,
     bytes: &[u8],
-) -> BTreeSet<usize> {
-    let mut blob_offsets = BTreeSet::new();
+) -> BTreeMap<usize, Range<usize>> {
+    let mut sections = BTreeMap::new();
 
     let offsets = collect_data_offsets(&bytes[tree_offset..], 0, 1);
     let offsets: Vec<usize> = offsets.into_iter().collect();
@@ -246,12 +247,15 @@ pub fn find_blob_offsets(
 
             // Did we find a complete chain?
             if found {
-                blob_offsets.insert(start);
+                // Point to the end of the last blob.
+                offset = offset + size + 4;
+
+                sections.insert(start, start..offset);
             }
         }
     }
 
-    blob_offsets
+    sections
 }
 
 pub fn extract_tree<P: AsRef<Path>>(

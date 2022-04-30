@@ -29,20 +29,20 @@ fn main() -> Result<()> {
 
     let names = scan_names(&bytes);
 
-    for (range, names) in names.iter() {
-        println!("Found set of names at 0x{:x}-0x{:x}...", range.start, range.end);
+    for (_, (name_range, names)) in names.iter() {
+        println!("Found set of names at 0x{:x}-0x{:x}...", name_range.start, name_range.end);
 
-        let tree_offsets = tree::find_tree_offsets(names, &bytes);
+        let trees = tree::find_trees(names, &bytes);
 
-        for (tree_offset, tree_size) in tree_offsets {
-            println!("Found file tree at 0x{:x}-0x{:x}...", tree_offset, tree_offset + tree_size);
+        for (_, tree_range) in trees {
+            println!("Found file tree at 0x{:x}-0x{:x}...", tree_range.start, tree_range.end);
 
-            let mut blob_offsets = tree::find_blob_offsets(tree_offset, &bytes);
+            let mut blobs = tree::find_blobs(tree_range.start, &bytes);
 
             // FIXME: add the Windows version.
-            if blob_offsets.is_empty() {
+            if blobs.is_empty() {
                 // Align the offset to 8 bytes.
-                let mut offset = (range.end + 7) & !7;
+                let mut offset = (name_range.end + 7) & !7;
 
                 // Skip 8 bytes of padding until we find no more padding.
                 while offset + 8 <= bytes.len() && bytes[offset..][..8].iter().all(|c| *c == 0) {
@@ -52,15 +52,20 @@ fn main() -> Result<()> {
                 // If we did not reach the end of the file, then we probably found a good blob
                 // offset.
                 if offset + 8 <= bytes.len() {
-                    blob_offsets.insert(offset);
+                    // Decode the size field.
+                    let mut slice = [0u8; 4];
+                    slice.copy_from_slice(&bytes[offset..][..4]);
+                    let size = u32::from_be_bytes(slice) as usize;
+
+                    blobs.insert(offset, offset..offset + size + 4);
                 }
             }
 
-            for blob_offset in blob_offsets {
-                println!("Found data blobs at 0x{:x}...", blob_offset);
+            for (_, blob_range) in blobs {
+                println!("Found data blobs at 0x{:x}-0{:x}...", blob_range.start, blob_range.end);
                 println!("Extracting file tree...");
 
-                tree::extract_tree(&output, names, &bytes[blob_offset..], &bytes[tree_offset..], 0, 1)?;
+                tree::extract_tree(&output, names, &bytes[blob_range.clone()], &bytes[tree_range.clone()], 0, 1)?;
             }
         }
     }

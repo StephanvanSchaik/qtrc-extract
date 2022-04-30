@@ -1,4 +1,4 @@
-use rangemap::RangeMap;
+use rangemap::RangeSet;
 use std::collections::{BTreeMap, BTreeSet};
 use std::ops::Range;
 
@@ -159,18 +159,19 @@ pub fn parse_names(
 /// parsed byte ranges to a map of relative offsets to strings.
 pub fn scan_names(
     bytes: &[u8],
-) ->  RangeMap<usize, BTreeMap<usize, String>> {
+) ->  BTreeMap<usize, (Range<usize>, BTreeMap<usize, String>)> {
     // Scan the byte array for name entries.
     let mut offsets = BTreeSet::new();
     scan_ascii_names(&mut offsets, &bytes[0..], 0);
     scan_ascii_names(&mut offsets, &bytes[1..], 1);
 
     // Keep track of the ranges we already parsed.
-    let mut ranges = RangeMap::new();
+    let mut ranges = RangeSet::new();
+    let mut sections = BTreeMap::new();
 
     for offset in &offsets {
         // We already parsed this offset, skip it.
-        if ranges.contains_key(offset) {
+        if ranges.contains(offset) {
             continue;
         }
 
@@ -184,8 +185,9 @@ pub fn scan_names(
             continue;
         }
 
-        ranges.insert(range, names);
+        ranges.insert(range.clone());
+        sections.insert(range.start, (range, names));
     }
 
-    ranges
+    sections
 }
