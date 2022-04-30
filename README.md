@@ -4,10 +4,10 @@ A tool written in Rust to extract resources from executables that use Qt.
 
 ## Features
 
-[x] Support for zlib compressed blobs.
-[x] Automatically finds the tree, blob and name offsets.
-[ ] Support for zstd compressed blobs (due for Qt 6).
-[ ] Support for version 1 of the file format (which lacks modified timestamps).
+* [x] Support for zlib compressed blobs.
+* [x] Automatically finds the tree, blob and name offsets.
+* [ ] Support for zstd compressed blobs (due for Qt 6).
+* [ ] Support for version 1 of the file format (which lacks modified timestamps).
 
 This needs a little bit more work to figure out padding and visited ranges, but should already work quite well otherwise.
 
