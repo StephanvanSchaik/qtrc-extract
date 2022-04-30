@@ -13,7 +13,7 @@ This needs a little bit more work to figure out padding and visited ranges, but 
 
 ## Usage
 
-Build the qtrc-extract as follows:
+Build qtrc-extract as follows:
 
 ```
 cargo build --release
