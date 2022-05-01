@@ -7,5 +7,6 @@ edition = "2021"
 anyhow = "1"
 binrw = "0.8"
 clap = { version = "3", features = ["derive"] }
+goblin = "0.5"
 flate2 = "1"
 rangemap = "1"

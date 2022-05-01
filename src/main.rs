@@ -1,12 +1,18 @@
+mod blob;
+mod executable;
 mod name;
 mod tree;
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use std::collections::BTreeMap;
+use goblin::Object;
+use goblin::elf::program_header::PT_LOAD;
+use rangemap::RangeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::ops::Range;
 use std::path::PathBuf;
 
+use crate::executable::ExecutableMapping;
 use crate::name::scan_names;
 
 #[derive(Parser, Debug)]
@@ -40,6 +46,8 @@ fn main() -> Result<()> {
     let bytes = std::fs::read(&args.input)
         .with_context(|| format!("could not open file '{}'.", &args.input))?;
 
+    let mapping = ExecutableMapping::parse(&bytes)?;
+
     let names = scan_names(&bytes);
 
     for (_, (name_range, names)) in names.iter() {
@@ -58,8 +66,7 @@ fn main() -> Result<()> {
 
             let mut blobs = tree::find_blobs(tree_range.start, &bytes);
 
-            // FIXME: add the Windows version.
-            if blobs.is_empty() {
+            /*if blobs.is_empty() {
                 // Align the offset to 8 bytes.
                 let mut offset = (name_range.end + 7) & !7;
 
@@ -78,6 +85,35 @@ fn main() -> Result<()> {
 
                     blobs.insert(offset, offset..offset + size + 4);
                 }
+            }*/
+
+            // FIXME: calculate the actual blob range?
+            if blobs.is_empty() {
+                let scores = blob::find_blobs_push(&bytes, &mapping, tree_range.start, name_range.start);
+
+                if let Some((score, blob_offset)) = scores.into_iter().next() {
+                    println!("Found PUSH instruction with blob offset 0x{:x} and proximity score {}", blob_offset, score);
+                    blobs.insert(blob_offset, blob_offset..blob_offset + 1);
+                }
+            }
+
+            if blobs.is_empty() {
+                let scores = blob::find_blobs_lea(&bytes, &mapping, tree_range.start, name_range.start, false);
+
+                if let Some((score, blob_offset)) = scores.into_iter().next() {
+                    println!("Found LEA instruction with blob offset 0x{:x} and proximity score {}", blob_offset, score);
+                    blobs.insert(blob_offset, blob_offset..blob_offset + 1);
+                }
+            }
+
+            // FIXME: check if we are dealing with PE or ELF.
+            if blobs.is_empty() {
+                let scores = blob::find_blobs_lea(&bytes, &mapping, tree_range.start, name_range.start, true);
+
+                if let Some((score, blob_offset)) = scores.into_iter().next() {
+                    println!("Found LEA instruction with blob offset 0x{:x} and proximity score {}", blob_offset, score);
+                    blobs.insert(blob_offset, blob_offset..blob_offset + 1);
+                }
             }
 
             // Score the blobs by their proximity to this name range.
@@ -90,7 +126,7 @@ fn main() -> Result<()> {
                 println!("Found data blobs at 0x{:x}-0{:x} with proximity score {}...", blob_range.start, blob_range.end, score);
                 println!("Extracting file tree...");
 
-                if let Ok(()) = tree::extract_tree(&output, names, &bytes[blob_range.clone()], &bytes[tree_range.start..], 0, 1) {
+                if let Ok(()) = tree::extract_tree(&output, names, &bytes[blob_range.start..], &bytes[tree_range.start..], 0, 1) {
                     break 'outer;
                 }
             }
