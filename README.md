@@ -46,7 +46,7 @@ The information/metadata for each tree is split up over three sections:
  * The **name** section contains UTF-16 strings with a 16-bit size and a 32-bit hash.
 
 The sections are usually found sequentially in the executable, possibly with some padding in between.
-However, after some experimentation I found out that the order of the sections it not always the same:
+However, after some experimentation I found out that the order of the sections is not always the same:
 
 * Microsoft Windows order: \<blobs\> \<names\> \<tree\>
 * Linux order: \<tree\> \<names\> \<blobs\>
@@ -121,7 +121,7 @@ As this is a tree, this means there can be no loops and directories therefore mu
 
 In addition, each entry has a name offset which is a relative offset into the name section.
 Since we know where the name section is, we can just calculate the offset of each name relative to the start of the name section and check that each entry references a valid name.
-Furthermore, we expect the executable not to have any unused names, so we would expect to see all name entries being referenced to at least once.
+Furthermore, we expect the executable to not have any unused names, so we would expect to see all name entries being referenced to at least once.
 
 These heuristics allow us to find the corresponding tree section for the name section.
 
@@ -148,15 +148,15 @@ More specifically, when the application registers Qt resources, it passes the ve
 However, the application will be passing the offsets as virtual addresses pointing to where the Qt resources are located in the virtual address space, rather than file offsets to where the Qt resources are located within the executable file.
 Therefore, we must first parse the PE sections/ELF program headers to establish a mapping between the virtual address space and the file offsets.
 We can then use this information to translate the tree offsets and name offsets we found to their counterparts in the virtual address space.
-Then, for x86 applications at least, we can simply look for these constants in the executable and find `PUSH` instructions that directly push this 32-bit constants.
-More specifically, these will be of the form 68 XX XX XX XX where XX XX XX XX is the 32-bit address.
+Then, for x86 applications at least, we can simply look for these constants in the executable and find `push` instructions that directly push this 32-bit constants.
+More specifically, these will be of the form 0x68 0xXX 0xXX 0xXX 0xXX where 0xXX 0xXX 0xXX 0xXX is the 32-bit address.
 
-For x86-64 applications, things are slightly more complicated as a) the calling conventions on x86-64 use registers for the first few arguments and B) as it is very likely that the application uses `LEA RDX, [RIP + 0xXXXXXXXX]` to load the constants into the registers.
-To calculate the actual value to look for in the binary we have to add the instruction offset of the instruction **after** the `LEA` instruction to the constant being added to the `RIP` register.
-In addition, we can look for the opcode 8D (LEA) as well as the specific destination register to match the constant with the appropriate argument.
+For x86-64 applications, things are slightly more complicated as a) the calling conventions on x86-64 use registers for the first few arguments and b) as it is very likely that the application uses instructions of the form `lea rdx, [rip + 0xXXXXXXXX]` to load the constants into the registers (where `rdx` may be different).
+To calculate the actual value to look for in the binary we have to add the instruction offset of the instruction **after** the `lea` instruction to the constant being added to the `rip` register.
+In addition, we can look for the opcode 0x8D (lea) as well as the specific destination register to match the constant with the appropriate argument.
 
-Once we know where the instructions referencing the name offset and tree offset are located within our program, we can simply look for the closest `LEA` instruction that targets the appropriate destination register for the blob offset to find the blob offset.
-Similarly, we can look for the closest `PUSH` instruction before the `PUSH` using the name/tree offset to find the blob offset, as the `PUSH` instructions have to be present in the reverse order of the arguments anyway.
+Once we know where the instructions referencing the name offset and tree offset are located within our program, we can simply look for the closest `lea` instruction that targets the appropriate destination register for the blob offset to find the blob offset.
+Similarly, we can look for the closest `push` instruction before the `push` using the name/tree offset to find the blob offset, as the `push` instructions have to be present in the reverse order of the arguments anyway.
 Since the blob offset is actually a virtual address, we have to perform some calculations to get the actual file offset.
 
 Of course, as we are relying on heuristics to locate Qt resources, these techniques and as a result qtrc-extract is not guaranteed to work for every possible executable, and sometimes reverse engineering is inevitable.
@@ -166,10 +166,10 @@ In most other cases, this tool will be able to extract Qt resources completely a
 
 ## Similar Projects
 
-* [extract-qt-resources](https://github.com/dgchurchill/extract-qt-resources) is written in F# and requires Mono on Linux. I wasn't able to get this one to compile, since I have very little experience with Mono, but this seemed to be the most promising judging it by its parsers.
-* [qrc](https://github.com/pgaskin/qrc) is written in Go and requires the user to specify offsets to the tree, names and blobs section in order to extract them from an executable.
-* [qtextract](https://github.com/axstin/qtextract) is written in Lua and seems to look for specific sequences in the code of the executable to locate the offsets. Unfortunately, this is not very reliable as it depends on the generated code within the executable.
-* [qresExtract](https://github.com/tatokis/qresExtract) is written in C++ and seems to be a simple parser for rcc files, but does not seem to have any logic to extract Qt resources from executables.
+* [extract-qt-resources](https://github.com/dgchurchill/extract-qt-resources) is written in F# and requires Mono on Linux. As I have very little experience with Mono, I wasn't able to get this one to compile, but this seemed to be the most promising judging it by its parsers. The structs are well documented and helped me navigate through various hexdumps to get a better understanding of how to approach the problem.
+* [qrc](https://github.com/pgaskin/qrc) is written in Go and requires the user to specify offsets to the tree, names and blobs section in order to actually extract them from an executable.
+* [qtextract](https://github.com/axstin/qtextract) is written in Lua and seems to look for very specific sequences of x86 and x86-64 assembly in the code of the executable to locate the offsets. This has the disadvantage that the code signature(s) the tool is looking for must match exactly. One problem with this is that for register-based calling conventions, the arguments may be loaded in any order and therefore the instructions may appear in any order. Another problem with this is that even for stack-based calling conventions, there may be other instructions in between the instructions pushing the arguments onto the stack. However, the Lua tool did give me the idea of looking for known offsets to locate the missing offset in such a way we avoid both of these problems.
+* [qresExtract](https://github.com/tatokis/qresExtract) is written in C++ and seems to be a simple parser for rcc files, but does not seem to have any logic to extract Qt resources from executables at all.
 
 ## References
 
