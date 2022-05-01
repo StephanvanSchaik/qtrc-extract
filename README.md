@@ -161,6 +161,7 @@ Since the blob offset is actually a virtual address, we have to perform some cal
 
 Of course, as we are relying on heuristics to locate Qt resources, these techniques and as a result qtrc-extract is not guaranteed to work for every possible executable, and sometimes reverse engineering is inevitable.
 However, understanding the heuristics and techniques used by qtrc-extract helps in understanding where to look in the case you have to reverse engineer such a binary yourself.
+For instance, it may be possible that some call sites are still found giving you the address of the function, which in turn may help in finding the other call sites and thus the tree, name and blob offsets.
 In most other cases, this tool will be able to extract Qt resources completely automatically for you.
 
 ## Similar Projects
