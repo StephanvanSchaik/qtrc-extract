@@ -56,6 +56,9 @@ Therefore, any given executable may have trees that are completely uncompressed,
 This means that on top of the metadata not having any signatures, you may not have any zlib signatures to work with either.
 
 Instead qtrc-extract relies on heuristics to locate Qt resource trees.
+
+### Locating Name Sections
+
 First, note that a name entry looks as follows:
 
 * size: unsigned 16-bit integer
@@ -92,6 +95,8 @@ pub fn hash_str(s: &str) -> u32 {
 Once we have at least one name entry, we can simply try decoding sequential name entries until we hit data that does not represent a name entry, which will very likely produce an incorrect hash.
 This means that we generally just need the first name entry of a set of names to be within the ASCII range.
 
+### Locating Tree Sections
+
 Next we want to find the **tree** section describing the actual resource tree.
 As mentioned before a tree entry can either be a file or a directory.
 A directory entry looks as follows:
@@ -119,6 +124,8 @@ Since we know where the name section is, we can just calculate the offset of eac
 Furthermore, we expect the executable not to have any unused names, so we would expect to see all name entries being referenced to at least once.
 
 These heuristics allow us to find the corresponding tree section for the name section.
+
+### Locating Blob Sections
 
 Finally, to find the blob section, we note that the file entries in the tree section contain a data offset.
 This offset is again relative to the start of the blob section.
