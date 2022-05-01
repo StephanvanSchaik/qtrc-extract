@@ -9,8 +9,6 @@ A tool written in Rust to extract resources from executables that use Qt.
 * [ ] Support for zstd compressed blobs (due for Qt 6).
 * [ ] Support for version 1 of the file format (which lacks modified timestamps).
 
-This needs a little bit more work to figure out padding and visited ranges, but should already work quite well otherwise.
-
 ## Usage
 
 To build qtrc-extract you need both Git and [Rust](https://rustup.rs).
@@ -137,17 +135,32 @@ Then we try to find the first blob by looking for the first delta, and then simp
 
 Unfortunately, this approach has one drawback, which is that some resource trees may only contain one file and therefore only one data offset.
 Thus leaving us without a way to figure out the size of a single blob.
-However, note that these resource trees usually follow a particular layout where the blobs either succeed the names (Linux) or where the blobs preceed the names (Windows).
-This means that we can look for the blob starting from the end of the name section (Linux) or look for the blob in reverse starting from the start of the name section (Windows).
+To remediate this, we instead rely on the fact that the tree and file offset we know are likely to be correct, and more so that we can use this information to find the possible call sites to `qRegisterResourceData`.
 
-In general this approach works pretty well to extract resources from executables that use Qt's resource packing, but can be further improved by looking for specific file headers (e.g. zlib signatures, PNG singatures, GIF signatures).
-Ideally, this should be implemented in such a way that the user of this tool can simply specify their own file containing the signatures per line using a format like "CA ?? FE".
+More specifically, when the application registers Qt resources, it passes the version, the tree offset, the name offset and the blob offset as the arguments to that function.
+However, the application will be passing the offsets as virtual addresses pointing to where the Qt resources are located in the virtual address space, rather than file offsets to where the Qt resources are located within the executable file.
+Therefore, we must first parse the PE sections/ELF program headers to establish a mapping between the virtual address space and the file offsets.
+We can then use this information to translate the tree offsets and name offsets we found to their counterparts in the virtual address space.
+Then, for x86 applications at least, we can simply look for these constants in the executable and find `PUSH` instructions that directly push this 32-bit constants.
+More specifically, these will be of the form 68 XX XX XX XX where XX XX XX XX is the 32-bit address.
+
+For x86-64 applications, things are slightly more complicated as a) the calling conventions on x86-64 use registers for the first few arguments and B) as it is very likely that the application uses `LEA RDX, [RIP + 0xXXXXXXXX]` to load the constants into the registers.
+To calculate the actual value to look for in the binary we have to add the instruction offset of the instruction **after** the `LEA` instruction to the constant being added to the `RIP` register.
+In addition, we can look for the opcode 8D (LEA) as well as the specific destination register to match the constant with the appropriate argument.
+
+Once we know where the instructions referencing the name offset and tree offset are located within our program, we can simply look for the closest `LEA` instruction that targets the appropriate destination register for the blob offset to find the blob offset.
+Similarly, we can look for the closest `PUSH` instruction before the `PUSH` using the name/tree offset to find the blob offset, as the `PUSH` instructions have to be present in the reverse order of the arguments anyway.
+Since the blob offset is actually a virtual address, we have to perform some calculations to get the actual file offset.
+
+Of course, as we are relying on heuristics to locate Qt resources, these techniques and as a result qtrc-extract is not guaranteed to work for every possible executable, and sometimes reverse engineering is inevitable.
+However, understanding the heuristics and techniques used by qtrc-extract helps in understanding where to look in the case you have to reverse engineer such a binary yourself.
+In most other cases, this tool will be able to extract Qt resources completely automatically for you.
 
 ## Similar Projects
 
 * [extract-qt-resources](https://github.com/dgchurchill/extract-qt-resources) is written in F# and requires Mono on Linux. I wasn't able to get this one to compile, since I have very little experience with Mono, but this seemed to be the most promising judging it by its parsers.
 * [qrc](https://github.com/pgaskin/qrc) is written in Go and requires the user to specify offsets to the tree, names and blobs section in order to extract them from an executable.
-* [qtextract](https://github.com/axstin/qtextract) is written in Lua and seems to look for specific sequences in the code of the executable to locate the offsets. This didn't seem to work for me, which may be due to the specific code sequences for which it is looking.
+* [qtextract](https://github.com/axstin/qtextract) is written in Lua and seems to look for specific sequences in the code of the executable to locate the offsets. Unfortunately, this is not very reliable as it depends on the generated code within the executable.
 * [qresExtract](https://github.com/tatokis/qresExtract) is written in C++ and seems to be a simple parser for rcc files, but does not seem to have any logic to extract Qt resources from executables.
 
 ## References
